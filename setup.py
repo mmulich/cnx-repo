@@ -28,6 +28,7 @@ setup(name='cnx-repo',
         ],
       author='',
       author_email='',
+      license='LGPL 2.1',  # See also the LICENSE file.
       url='',
       keywords='web wsgi bfg pylons pyramid',
       packages=find_packages(),
