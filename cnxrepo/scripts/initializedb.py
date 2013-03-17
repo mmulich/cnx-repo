@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+"""Commandline script used to initialize the SQL database."""
 import os
 import sys
 import transaction

@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+"""Repository specific models"""
 from sqlalchemy import (
     Column,
     Integer,
