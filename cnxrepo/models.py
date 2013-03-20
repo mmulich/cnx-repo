@@ -42,6 +42,20 @@ external_resource_associations = Table(
     Column('resource_id', Integer, ForeignKey('external_resources.id')),
     )
 
+internal_reference_associations = Table(
+    'internal_reference_associations',
+    Base.metadata,
+    Column('left_id', Integer, ForeignKey('contents.id'), primary_key=True),
+    Column('right_id', Integer, ForeignKey('contents.id'), primary_key=True),
+    )
+
+external_reference_associations = Table(
+    'external_reference_associations',
+    Base.metadata,
+    Column('content_id', Integer, ForeignKey('contents.id')),
+    Column('external_reference_id', Integer,
+           ForeignKey('external_references.id')),
+    )
 
 class Resource(Base):
     """Any file resource that is not `Content`."""
@@ -65,6 +79,16 @@ class ExternalResource(Base):
         self.uri = uri
 
 
+class ExternalReference(Base):
+    """An externally referenced piece of content."""
+    __tablename__ = 'external_references'
+    id = Column(Integer, primary_key=True)
+    uri = Column(String, nullable=False, unique=True)
+
+    def __init__(self, uri):
+        self.uri = uri
+
+
 class Content(Base):
     """Any text based content"""
     __tablename__ = 'contents'
@@ -79,6 +103,19 @@ class Content(Base):
     external_resources = relationship(ExternalResource,
                                       secondary=external_resource_associations,
                                       backref='used_in')
+    # Reference relationships
+    internal_references = relationship(
+        'Content',
+        secondary=internal_reference_associations,
+        primaryjoin=id==internal_reference_associations.c.left_id,
+        secondaryjoin=id==internal_reference_associations.c.right_id,
+        backref='used_in',
+        )
+    external_references = relationship(
+        ExternalReference,
+        secondary=external_reference_associations,
+        backref='used_in',
+        )
 
     def __init__(self, title, content=''):
         self.title = title
