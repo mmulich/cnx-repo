@@ -38,7 +38,7 @@ def test():
             yield func, config
         transaction.abort()
 
-def check_contentadded_resource_subscriber(config):
+def check_content_added_resource_subscriber(config):
     # Configure the event subscriber in question.
     from .models import catalog_resources_on_add
     config.add_subscriber(catalog_resources_on_add)
@@ -67,7 +67,7 @@ def check_contentadded_resource_subscriber(config):
     assert content in external_resource.used_in
     assert external_resource in content.external_resources
 
-def check_contentadd_reference_subscriber(config):
+def check_content_added_reference_subscriber(config):
     # Configure the event subscriber in question.
     from .models import catalog_content_references_on_add
     config.add_subscriber(catalog_content_references_on_add)
