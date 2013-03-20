@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """Application tests"""
 import os
+import transaction
 from nose import with_setup
 from pyramid import testing
 from pyramid.paster import get_appsettings
@@ -38,8 +39,8 @@ def test():
 
 def check_contentadded_resource_subscriber(config):
     # Configure the event subscriber in question.
-    from .events import catalog_resource
-    config.add_subscriber(catalog_resource)
+    from .models import catalog_resources
+    config.add_subscriber(catalog_resources)
     # Create a DB session to work with.
     from .models import DBSession
     session = DBSession()
@@ -47,11 +48,21 @@ def check_contentadded_resource_subscriber(config):
     from .models import Content, Resource
     resource = Resource(TEST_RESOURCE_FILENAME, TEST_RESOURCE_DATA)
     session.add(resource)
+    session.flush()  # Flush to get an id for the resource.
     external_resource_url = 'http://example.com/play-physics.swf'
     content_body = 'Content <img src="/resource/{}" /> Content' \
-                   '<img src="{}" />'.format(TEST_RESOURCE_FILENAME,
+                   '<embed src="{}"></embed>'.format(resource.id,
                                              external_resource_url)
     content = Content('Content Title', content_body)
     session.add(content)
-    # Now query for the association(s) that should have been made.
-    relations = session.query()
+    session.flush()
+
+    # Now verify the relationships were created using the relationship
+    #   properties on the objects.
+    assert content in resource.used_in
+    assert resource in content.internal_resources
+    assert False, "External resource still needs work."
+    ##external_resource = session.query()
+
+# def check_race_condition_w_content_before_resource(config):
+#     pass

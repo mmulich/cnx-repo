@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 """Repository specific models"""
+from lxml import html
+from pyramid.events import subscriber
 from sqlalchemy import (
     Column,
     ForeignKey,
@@ -20,7 +22,7 @@ from sqlalchemy.event import listens_for as sqlalchemy_listens_for
 
 from zope.sqlalchemy import ZopeTransactionExtension
 
-from .events import notify, ContentAdded
+from cnxrepo import events
 
 
 DBSession = scoped_session(sessionmaker(extension=ZopeTransactionExtension()))
@@ -57,11 +59,9 @@ class ExternalResource(Base):
     """Any resource that is not within this system."""
     __tablename__ = 'external_resources'
     id = Column(Integer, primary_key=True)
-    name = Column(String)
-    uri = Column(String)
+    uri = Column(String, nullable=False, unique=True)
 
-    def __init__(self, name, uri):
-        self.name = name
+    def __init__(self, uri):
         self.uri = uri
 
 
@@ -83,8 +83,49 @@ class Content(Base):
     def __init__(self, title, content=''):
         self.title = title
         self.content = content
-        notify(ContentAdded(self))
+
 
 @sqlalchemy_listens_for(Content, 'after_insert')
 def content_added(mapper, connection, target):
-    notify(ContentAdded(target))
+    events.notify(events.ContentAdded(target))
+
+def find_resources(content):
+    """Given some html content, yield any resource entries."""
+    # ??? I'm sure there are better ways to do this, no?
+    parsed_content = html.fromstring(content)
+    # Parse 'img' tags.
+    for uri in parsed_content.xpath('//img/@src'):
+        yield uri
+    raise StopIteration
+
+def extract_resource_id_from_uri(uri):
+    """Extract the resource id from the given URI."""
+    # TODO Replace with reverse route parsing after the route has been crated.
+    return  uri[len('/resource/'):]
+
+@subscriber(events.ContentAdded)
+def catalog_resources(event):
+    """For any resource (internal or external) used in the content object,
+    capture its usage to build relationship information.
+
+    Internal resouces will be captured in an association table to build
+    a minimal relationship between the content and resource.
+    Extneral resources are captured and placed in an external resources
+    relation table.
+
+    """
+    session = DBSession()
+    for uri in find_resources(event.obj.content):
+        if uri.startswith('http'):
+            # Create an external reference.
+            resource = ExternalResource(uri)
+            resource.used_in.append(event.obj)
+            session.add(resource)
+        else:
+            # Create a resource reference.
+            resource_id = extract_resource_id_from_uri(uri)
+            resource = session.query(Resource) \
+                .filter(Resource.id==resource_id) \
+                .one()
+            resource.used_in.append(event.obj)
+            session.add(resource)

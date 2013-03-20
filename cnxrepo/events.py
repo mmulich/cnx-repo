@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 """Application trigger event classes and handlers."""
-from pyramid.events import subscriber
 from pyramid.threadlocal import get_current_registry
 
 
@@ -18,20 +17,8 @@ class BaseEvent:
 
 
 class ContentAdded(BaseEvent):
-    """Content has been added to the application."""
+    """Content has been added."""
 
 
-@subscriber(ContentAdded)
-def catalog_resource(event):
-    """For any resource (internal or external) used in the content object,
-    capture its usage to build relationship information.
-
-    Internal resouces will be captured in an association table to build
-    a minimal relationship between the content and resource.
-    Extneral resources are captured and placed in an external resources
-    relation table.
-
-    """
-    # TODO Parse the content for resource usage. Make relational
-    #      entries for the found resources.
-    pass
+class ContentModified(BaseEvent):
+    """Content has been updated."""
