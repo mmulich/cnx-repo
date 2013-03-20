@@ -157,7 +157,7 @@ def extract_reference_id_from_uri(uri):
 
 
 @subscriber(events.ContentAdded)
-def catalog_content_references(event):
+def catalog_content_references_on_add(event):
     """Capture references to other content objects and build a relationship
     entry.
 
@@ -181,7 +181,7 @@ def catalog_content_references(event):
         session.add(reference)
 
 @subscriber(events.ContentAdded)
-def catalog_resources(event):
+def catalog_resources_on_add(event):
     """For any resource (internal or external) used in the content object,
     capture its usage to build relationship information.
 

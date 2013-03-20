@@ -40,8 +40,8 @@ def test():
 
 def check_contentadded_resource_subscriber(config):
     # Configure the event subscriber in question.
-    from .models import catalog_resources
-    config.add_subscriber(catalog_resources)
+    from .models import catalog_resources_on_add
+    config.add_subscriber(catalog_resources_on_add)
     # Create a DB session to work with.
     from .models import DBSession
     session = DBSession()
@@ -69,8 +69,8 @@ def check_contentadded_resource_subscriber(config):
 
 def check_contentadd_reference_subscriber(config):
     # Configure the event subscriber in question.
-    from .models import catalog_content_references
-    config.add_subscriber(catalog_content_references)
+    from .models import catalog_content_references_on_add
+    config.add_subscriber(catalog_content_references_on_add)
     # Create a DB session to work with.
     from .models import DBSession
     session = DBSession()
