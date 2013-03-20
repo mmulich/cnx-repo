@@ -49,10 +49,10 @@ def check_contentadded_resource_subscriber(config):
     resource = Resource(TEST_RESOURCE_FILENAME, TEST_RESOURCE_DATA)
     session.add(resource)
     session.flush()  # Flush to get an id for the resource.
-    external_resource_url = 'http://example.com/play-physics.swf'
+    external_resource_uri = 'http://example.com/play-physics.swf'
     content_body = 'Content <img src="/resource/{}" /> Content' \
                    '<embed src="{}"></embed>'.format(resource.id,
-                                             external_resource_url)
+                                             external_resource_uri)
     content = Content('Content Title', content_body)
     session.add(content)
     session.flush()
@@ -61,8 +61,10 @@ def check_contentadded_resource_subscriber(config):
     #   properties on the objects.
     assert content in resource.used_in
     assert resource in content.internal_resources
-    assert False, "External resource still needs work."
-    ##external_resource = session.query()
+    from .models import ExternalResource
+    external_resource = session.query(ExternalResource).one()
+    assert content in external_resource.used_in
+    assert external_resource in content.external_resources
 
 # def check_race_condition_w_content_before_resource(config):
 #     pass

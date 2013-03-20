@@ -96,6 +96,8 @@ def find_resources(content):
     # Parse 'img' tags.
     for uri in parsed_content.xpath('//img/@src'):
         yield uri
+    for uri in parsed_content.xpath('//embed/@src'):
+        yield uri
     raise StopIteration
 
 def extract_resource_id_from_uri(uri):
