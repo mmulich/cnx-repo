@@ -150,14 +150,35 @@ def extract_resource_id_from_uri(uri):
     # TODO Replace with reverse route parsing after the route has been crated.
     return  uri[len('/resource/'):]
 
+def extract_reference_id_from_uri(uri):
+    """Extract the reference id from the given URI."""
+    # TODO Replace with reverse route parsing after the route has been crated.
+    return  uri[len('/content/'):]
+
+
 @subscriber(events.ContentAdded)
 def catalog_content_references(event):
     """Capture references to other content objects and build a relationship
     entry.
 
     """
-    for ref in find_referenced_content(event.obj.content):
-        print(ref)
+    session = DBSession()
+    for uri in find_referenced_content(event.obj.content):
+        if uri.startswith('http'):
+            # Create an external reference.
+            reference = ExternalReference(uri)
+            reference.used_in.append(event.obj)
+        else:
+            # Create an internal reference.
+            # FIXME Huge assumption that the first condition catches
+            #       all external references. Probably a better way to
+            #       do this.
+            reference_id = extract_reference_id_from_uri(uri)
+            reference = session.query(Content) \
+                .filter(Content.id==reference_id) \
+                .one()
+            reference.used_in.append(event.obj)
+        session.add(reference)
 
 @subscriber(events.ContentAdded)
 def catalog_resources(event):
@@ -176,7 +197,6 @@ def catalog_resources(event):
             # Create an external reference.
             resource = ExternalResource(uri)
             resource.used_in.append(event.obj)
-            session.add(resource)
         else:
             # Create a resource reference.
             resource_id = extract_resource_id_from_uri(uri)
@@ -184,4 +204,4 @@ def catalog_resources(event):
                 .filter(Resource.id==resource_id) \
                 .one()
             resource.used_in.append(event.obj)
-            session.add(resource)
+        session.add(resource)

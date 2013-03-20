@@ -78,7 +78,7 @@ def check_contentadd_reference_subscriber(config):
     from .models import Content
     content_one = Content('One', 'Content One')
     content_two = Content('Two', 'Content Two')
-    session.add(content_one, content_two)
+    session.add_all([content_one, content_two])
     session.flush()
     # And now add a piece of content that references other content.
     external_reference_uri = 'http://example.com/blah.html'
