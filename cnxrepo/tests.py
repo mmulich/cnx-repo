@@ -36,6 +36,7 @@ def test():
     for func in [f for n, f in globals().items() if n.startswith('check')]:
         with testing.testConfig() as config:
             yield func, config
+        transaction.abort()
 
 def check_contentadded_resource_subscriber(config):
     # Configure the event subscriber in question.
@@ -65,6 +66,39 @@ def check_contentadded_resource_subscriber(config):
     external_resource = session.query(ExternalResource).one()
     assert content in external_resource.used_in
     assert external_resource in content.external_resources
+
+def check_contentadd_reference_subscriber(config):
+    # Configure the event subscriber in question.
+    from .models import catalog_content_references
+    config.add_subscriber(catalog_content_references)
+    # Create a DB session to work with.
+    from .models import DBSession
+    session = DBSession()
+    # Make some content...
+    from .models import Content
+    content_one = Content('One', 'Content One')
+    content_two = Content('Two', 'Content Two')
+    session.add(content_one, content_two)
+    session.flush()
+    # And now add a piece of content that references other content.
+    external_reference_uri = 'http://example.com/blah.html'
+    content_body = '<a href="/content/{}">one</a>' \
+                   '<a href="/content/{}">two</a>' \
+                   '<a href="{}">blah</a>' \
+                   .format(content_one.id, content_two.id,
+                           external_reference_uri)
+    content = Content('Three', content_body)
+    session.add(content)
+    session.flush()
+
+    # Now verify the relationships were created using the relationship
+    #   properties on the objects.
+    assert content_one in content.internal_references
+    assert content_two in content.internal_references
+    from .models import ExternalReference
+    external_reference = session.query(ExternalReference).one()
+    assert content in external_reference.used_in
+    assert external_reference in content.external_references
 
 # def check_race_condition_w_content_before_resource(config):
 #     pass

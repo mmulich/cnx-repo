@@ -89,6 +89,14 @@ class Content(Base):
 def content_added(mapper, connection, target):
     events.notify(events.ContentAdded(target))
 
+def find_referenced_content(content):
+    """Given some html content, yield any referenced content entries."""
+    parsed_content = html.fromstring(content)
+    # Parse for 'a' tags.
+    for ref in parsed_content.xpath('//a/@href'):
+        yield ref
+    raise StopIteration
+
 def find_resources(content):
     """Given some html content, yield any resource entries."""
     # ??? I'm sure there are better ways to do this, no?
@@ -104,6 +112,15 @@ def extract_resource_id_from_uri(uri):
     """Extract the resource id from the given URI."""
     # TODO Replace with reverse route parsing after the route has been crated.
     return  uri[len('/resource/'):]
+
+@subscriber(events.ContentAdded)
+def catalog_content_references(event):
+    """Capture references to other content objects and build a relationship
+    entry.
+
+    """
+    for ref in find_referenced_content(event.obj.content):
+        print(ref)
 
 @subscriber(events.ContentAdded)
 def catalog_resources(event):
