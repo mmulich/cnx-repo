@@ -1,4 +1,9 @@
 0.0
 ---
 
+-  Built event handlers for content addition to capture relationships
+   between content and internal and external content as well as
+   internal and external resources. [pumazi]
+-  Built models and relationship tables for the application data
+   structure. [pumazi]
 -  Initial version
