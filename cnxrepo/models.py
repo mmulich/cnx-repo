@@ -126,6 +126,14 @@ class Content(Base):
 def content_added(mapper, connection, target):
     events.notify(events.ContentAdded(target))
 
+@sqlalchemy_listens_for(Content, 'after_update')
+def content_added(mapper, connection, target):
+    events.notify(events.ContentModified(target))
+
+def is_external_uri(uri):
+    """Boolean expression to tell whether a URI is internal or external."""
+    return uri.startswith('http')
+
 def find_referenced_content(content):
     """Given some html content, yield any referenced content entries."""
     parsed_content = html.fromstring(content)
@@ -154,7 +162,6 @@ def extract_reference_id_from_uri(uri):
     """Extract the reference id from the given URI."""
     # TODO Replace with reverse route parsing after the route has been crated.
     return  uri[len('/content/'):]
-
 
 @subscriber(events.ContentAdded)
 def catalog_content_references_on_add(event):
@@ -205,3 +212,103 @@ def catalog_resources_on_add(event):
                 .one()
             resource.used_in.append(event.obj)
         session.add(resource)
+
+@subscriber(events.ContentModified)
+def catalog_content_references_on_modify(event):
+    """Capture references to other content objects and if necessary
+    build a relationship entry for each of them. Verify integrity of the
+    relationships and take action to remove broken ones.
+
+    """
+    session = DBSession()
+    for uri in find_referenced_content(event.obj.content):
+        if uri.startswith('http'):
+            # Create an external reference.
+            reference = ExternalReference(uri)
+            reference.used_in.append(event.obj)
+        else:
+            # Create an internal reference.
+            # FIXME Huge assumption that the first condition catches
+            #       all external references. Probably a better way to
+            #       do this.
+            reference_id = extract_reference_id_from_uri(uri)
+            reference = session.query(Content) \
+                .filter(Content.id==reference_id) \
+                .one()
+            reference.used_in.append(event.obj)
+        session.add(reference)
+
+@subscriber(events.ContentModified)
+def catalog_resources_on_modify(event):
+    """For any resource (internal or external) used in the content object,
+    capture its usage if necessary to build relationship information.
+    Verify integrity of the existing relationships and take action to remove
+    broken ones.
+
+    Internal resouces will be captured in an association table to build
+    a minimal relationship between the content and resource.
+    Extneral resources are captured and placed in an external resources
+    relation table.
+
+    """
+    session = DBSession()
+    content = event.obj
+    existing_internal_resources = {r.id:r for r in content.internal_resources}
+    existing_external_resources = {r.uri:r for r in content.external_resources}
+    # LOH Internal resources need to be saved but their
+    #   relation needs to be removed. Likewise, external resources
+    #   need to have their relationship removed, but also need to be
+    #   removed from the database themselves.
+    #   A better way of discovering internal vs external needs to be
+    #   implemented so that the roll through can intelligently kill
+    #   external resource objects. Maybe an _is_external_uri function?
+
+    uris = find_resources(content.content)
+    external_uris = [uri for uri in uris if is_external_uri(uri)]
+    internal_uris = [
+        extract_resource_id_from_uri(uri)
+        for uri in uris
+        if uri not in external_uris
+        ]
+
+    for uri in external_uris:
+        # Does it exist in the current set of resources?
+        if uri in existing_external_resources:
+            continue
+        else:
+            # Create an external reference.
+            resource = ExternalResource(uri)
+            resource.used_in.append(event.obj)
+            session.add(resource)
+
+    for uri in internal_uris:
+        # Does it exist in the current set of resources?
+        if uri in existing_internal_resources:
+            continue
+        else:
+            # Create a resource reference.
+            resource_id = uri
+            resource = session.query(Resource) \
+                .filter(Resource.id==resource_id) \
+                .one()
+            resource.used_in.append(event.obj)
+            session.add(resource)
+
+    external_resources_to_remove = [
+        r
+        for r in existing_external_resources
+        if r.uri not in external_uris
+        ]
+    internal_resources_to_unreference = [
+        r
+        for r in existing_internal_resources
+        if r.id in internal_uris
+        ]
+
+    print(external_resources_to_remove)
+    print(internal_resources_to_unreference)
+    for resource in external_resources_to_remove:
+        session.delete(resource)
+    for resource in internal_resources_to_unreference:
+        resource.used_in.remove(content)
+    session.flush()
