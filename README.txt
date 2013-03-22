@@ -27,3 +27,6 @@ environment.
     $venv/bin/pip install cython
     export PATH=$venv/bin:$PATH
     $venv/bin/pip install $venv/gevent
+
+.. The following link is to a thread for gevent Python 3
+   support. https://github.com/SiteSupport/gevent/issues/38
