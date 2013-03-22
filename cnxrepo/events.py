@@ -15,9 +15,25 @@ This avoids any DetachedInstanceErrors from being raised.
 
 """
 from zope.interface import implementer
+import gevent
 from pyramid.threadlocal import get_current_registry
 
 from .interfaces import IContentAdded, IContentModified
+
+
+class Greenlet(gevent.Greenlet):
+    """Custom greenlet that provides transaction managment."""
+
+    def _run(self):
+        # Initialize the transaction manager
+        ##with tranaction.manager:
+        ##    super(Greenlet, self)._run()
+        super(Greenlet, self)._run()
+
+
+def coroutine(func):
+    """Event handler decorator to make the function a coroutine."""
+    return func
 
 def notify(event):
     """Alias to Registry.notify"""
