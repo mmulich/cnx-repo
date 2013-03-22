@@ -12,3 +12,19 @@ Getting Started
 
 - $venv/bin/pserve development.ini
 
+gevent is currently not supported on Python 3. However, there is a
+fork which has made experimental changes that does support Python 3.
+
+::
+
+    git clone https://github.com/fantix/gevent.git $venv/gevent
+
+Installing gevent in a virtual environment will require cython (for
+greenlet to build) and the exportation/activation of the virtual
+environment.
+
+::
+
+    $venv/bin/pip install cython
+    export PATH=$venv/bin:$PATH
+    $venv/bin/pip install $venv/gevent
