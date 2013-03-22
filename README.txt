@@ -4,13 +4,12 @@ cnx-repo README
 Getting Started
 ---------------
 
-- cd <directory containing this file>
+::
 
-- $venv/bin/python setup.py develop
-
-- $venv/bin/initialize_cnx-repo_db development.ini
-
-- $venv/bin/pserve development.ini
+    cd <directory containing this file>
+    $venv/bin/python setup.py develop
+    $venv/bin/initialize_cnx-repo_db development.ini
+    $venv/bin/pserve development.ini
 
 gevent is currently not supported on Python 3. However, there is a
 fork which has made experimental changes that does support Python 3.
